@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrainMonitor Pro - Entrenadores Deportivos</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <!-- Barra de navegación -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <i class="fas fa-running"></i>
+                <span>TrainMonitor Pro</span>
+            </div>
+            <div class="nav-links" id="navLinks">
+                <a href="#" onclick="mostrarSeccion('dashboard')"><i class="fas fa-home"></i> Inicio</a>
+                <a href="#" onclick="mostrarSeccion('jugadores')"><i class="fas fa-users"></i> Jugadores</a>
+                <a href="#" onclick="mostrarSeccion('evaluaciones')"><i class="fas fa-chart-line"></i> Evaluaciones</a>
+                <a href="#" onclick="mostrarSeccion('sesiones')"><i class="fas fa-calendar-alt"></i> Sesiones</a>
+                <a href="#" onclick="mostrarSeccion('cargas')"><i class="fas fa-dumbbell"></i> Cargas</a>
+                <button class="btn-logout" onclick="cerrarSesion()" id="btnLogout"><i class="fas fa-sign-out-alt"></i> Salir</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sección de Login -->
+    <div class="container" id="loginContainer">
+        <div class="login-box">
+            <h2><i class="fas fa-lock"></i> Iniciar Sesión</h2>
+            <div class="input-group">
+                <i class="fas fa-envelope"></i>
+                <input type="email" id="loginEmail" placeholder="Correo electrónico" required>
+            </div>
+            <div class="input-group">
+                <i class="fas fa-key"></i>
+                <input type="password" id="loginPassword" placeholder="Contraseña" required>
+            </div>
+            <button class="btn-primary" onclick="iniciarSesion()">Ingresar</button>
+            <button class="btn-secondary" onclick="registrarse()">Crear Cuenta</button>
+            <p class="login-info">Usa: entrenador@test.com / 123456</p>
+        </div>
+    </div>
+
+    <!-- Contenido principal (oculto hasta login) -->
+    <div class="main-container" id="mainContainer" style="display: none;">
+        
+        <!-- Dashboard -->
+        <section id="dashboard" class="section">
+            <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-users"></i>
+                    <h3 id="totalJugadores">0</h3>
+                    <p>Jugadores Activos</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-chart-line"></i>
+                    <h3 id="totalEvaluaciones">0</h3>
+                    <p>Evaluaciones</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-dumbbell"></i>
+                    <h3 id="cargaSemanal">0</h3>
+                    <p>Carga Semanal</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3 id="jugadoresRiesgo">0</h3>
+                    <p>En Riesgo</p>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <h3><i class="fas fa-bell"></i> Alertas Recientes</h3>
+                    <div id="alertasLista" class="lista-alertas"></div>
+                </div>
+                <div class="dashboard-card">
+                    <h3><i class="fas fa-calendar-check"></i> Próximas Evaluaciones</h3>
+                    <div id="proximasEvaluaciones" class="lista-evaluaciones"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Jugadores -->
+        <section id="jugadores" class="section" style="display: none;">
+            <div class="section-header">
+                <h1><i class="fas fa-users"></i> Gestión de Jugadores</h1>
+                <button class="btn-success" onclick="mostrarModalJugador()">
+                    <i class="fas fa-plus"></i> Nuevo Jugador
+                </button>
+            </div>
+            
+            <div class="filtros">
+                <input type="text" id="buscarJugador" placeholder="Buscar jugador..." onkeyup="filtrarJugadores()">
+                <select id="filtroPosicion" onchange="filtrarJugadores()">
+                    <option value="">Todas las posiciones</option>
+                    <option value="Portero">Portero</option>
+                    <option value="Defensa">Defensa</option>
+                    <option value="Mediocentro">Mediocentro</option>
+                    <option value="Delantero">Delantero</option>
+                    <option value="Extremo">Extremo</option>
+                </select>
+            </div>
+
+            <div class="jugadores-grid" id="listaJugadores">
+                <!-- Los jugadores se cargan aquí -->
+            </div>
+        </section>
+
+        <!-- Evaluaciones -->
+        <section id="evaluaciones" class="section" style="display: none;">
+            <div class="section-header">
+                <h1><i class="fas fa-chart-line"></i> Evaluaciones Físicas</h1>
+                <div class="btn-group">
+                    <button class="btn-primary" onclick="nuevaEvaluacion('YTR1')">
+                        <i class="fas fa-running"></i> Yoyo Test
+                    </button>
+                    <button class="btn-primary" onclick="nuevaEvaluacion('SJ')">
+                        <i class="fas fa-arrow-up"></i> Salto Vertical
+                    </button>
+                    <button class="btn-primary" onclick="nuevaEvaluacion('VELOCIDAD')">
+                        <i class="fas fa-tachometer-alt"></i> Velocidad
+                    </button>
+                </div>
+            </div>
+
+            <div class="evaluaciones-container">
+                <div class="evaluacion-card">
+                    <h3><i class="fas fa-running"></i> Yo-yo Test Recovery 1</h3>
+                    <p>Test de resistencia intermitente</p>
+                    <button class="btn-secondary" onclick="mostrarInstrucciones('YTR1')">Instrucciones</button>
+                    <button class="btn-primary" onclick="nuevaEvaluacion('YTR1')">Registrar</button>
+                </div>
+
+                <div class="evaluacion-card">
+                    <h3><i class="fas fa-arrow-up"></i> Saltos Verticales</h3>
+                    <p>SJ, CMJ, Abalakov</p>
+                    <button class="btn-secondary" onclick="mostrarInstrucciones('SJ')">Instrucciones</button>
+                    <button class="btn-primary" onclick="nuevaEvaluacion('SJ')">Registrar</button>
+                </div>
+
+                <div class="evaluacion-card">
+                    <h3><i class="fas fa-tachometer-alt"></i> Velocidad</h3>
+                    <p>10m, 20m, 30m</p>
+                    <button class="btn-secondary" onclick="mostrarInstrucciones('VELOCIDAD')">Instrucciones</button>
+                    <button class="btn-primary" onclick="nuevaEvaluacion('VELOCIDAD')">Registrar</button>
+                </div>
+            </div>
+
+            <h2>Historial de Evaluaciones</h2>
+            <div id="historialEvaluaciones" class="historial-container"></div>
+        </section>
+
+        <!-- Sesiones -->
+        <section id="sesiones" class="section" style="display: none;">
+            <h1><i class="fas fa-calendar-alt"></i> Planificación de Sesiones</h1>
+            <div class="sesiones-container">
+                <div class="calendar-card">
+                    <h3>Calendario Semanal</h3>
+                    <div id="calendario"></div>
+                </div>
+                <div class="sesion-creator">
+                    <h3>Crear Nueva Sesión</h3>
+                    <input type="text" id="sesionNombre" placeholder="Nombre de la sesión">
+                    <input type="date" id="sesionFecha">
+                    <select id="sesionTipo">
+                        <option value="Técnico">Técnico</option>
+                        <option value="Táctico">Táctico</option>
+                        <option value="Físico">Físico</option>
+                        <option value="Mixto">Mixto</option>
+                    </select>
+                    <button class="btn-primary" onclick="crearSesion()">Guardar Sesión</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Control de Cargas -->
+        <section id="cargas" class="section" style="display: none;">
+            <h1><i class="fas fa-dumbbell"></i> Control de Cargas</h1>
+            <div class="cargas-container">
+                <div class="carga-input">
+                    <h3>Registrar Carga Diaria</h3>
+                    <select id="jugadorCarga">
+                        <option value="">Seleccionar jugador</option>
+                    </select>
+                    <input type="number" id="rpe" placeholder="RPE (1-10)" min="1" max="10">
+                    <input type="number" id="duracion" placeholder="Duración (min)">
+                    <button class="btn-primary" onclick="registrarCarga()">Guardar</button>
+                </div>
+                <div class="carga-grafico">
+                    <h3>Evolución de Cargas</h3>
+                    <canvas id="graficoCargas"></canvas>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Modales -->
+    <div id="modalJugador" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModal('modalJugador')">&times;</span>
+            <h2>Nuevo Jugador</h2>
+            <div class="form-group">
+                <input type="text" id="jugadorNombre" placeholder="Nombre completo">
+            </div>
+            <div class="form-group">
+                <input type="email" id="jugadorEmail" placeholder="Email">
+            </div>
+            <div class="form-group">
+                <input type="date" id="jugadorNacimiento">
+            </div>
+            <div class="form-group">
+                <select id="jugadorPosicion">
+                    <option value="">Posición</option>
+                    <option value="Portero">Portero</option>
+                    <option value="Defensa">Defensa</option>
+                    <option value="Mediocentro">Mediocentro</option>
+                    <option value="Delantero">Delantero</option>
+                    <option value="Extremo">Extremo</option>
+                </select>
+            </div>
+            <button class="btn-primary" onclick="guardarJugador()">Guardar Jugador</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/evaluaciones.js"></script>
+    <script src="js/jugadores.js"></script>
+    <script src="js/sesiones.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>
